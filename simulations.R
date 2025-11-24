@@ -11,6 +11,11 @@
 #' @param hours integer vector of hours to simulate (default 0:23)
 #' @param seed optional integer RNG seed
 #' @return list with ending_inventory, served_by_station, unmet_by_station
+
+ 
+ 
+# Default seed
+seed <- 123
 simulate_day_nhpp <- function(lambda_hat, returns, b0, hours = 0:23, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
   
