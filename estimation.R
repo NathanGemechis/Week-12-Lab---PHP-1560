@@ -1,13 +1,107 @@
-#' Clean bike-share trip logs (base R)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+
+
+#' Estimate arrival rates for bike-share trips
+#'
+#' @description
+#' Computes the expected number of trips per hour between each pair of stations,
+#' accounting for station availability. Rebalancing trips (start or end at "R") are ignored.
+#'
+#' @param data data.frame of bike-share trips containing columns: start_station, end_station, start_time, end_time
+#' @return data.frame with columns:
+#' \describe{
+#'   \item{start_station}{integer or character station id of trip start}
+#'   \item{end_station}{integer or character station id of trip end}
+#'   \item{hour}{integer hour of the day (0–23)}
+#'   \item{avg_trips}{average number of trips per hour between start and end station}
+#'   \item{avg_avail}{average availability of bikes at start station during that hour}
+#'   \item{mu_hat}{estimated arrival rate, defined as avg_trips / avg_avail}
+#' }
+estimate_arrival_rates <- function(data) {
+  data <- data %>%
+    mutate(
+      start_time = as.POSIXct(start_time, format = "%Y-%m-%d %H:%M:%S"),
+      end_time   = as.POSIXct(end_time,   format = "%Y-%m-%d %H:%M:%S")
+    )
+  
+  # compute the average number of trips per hour between each pair
+  x_hat <- data %>%
+    mutate(hour = hour(start_time)) %>%
+    filter(start_station != "R", end_station != "R") %>%
+    group_by(start_station, end_station, hour) %>%
+    summarise(avg_trips = n() / n_distinct(as_date(start_time)), 
+              .groups = "drop")
+  
+  # pivot longer to get change in count 
+  data$end_station <- as.character(data$end_station)
+  
+  trips_long <- data %>%
+    pivot_longer(
+      cols = c("start_station", "start_time", "end_station", "end_time"),
+      names_to = c("type", ".value"),
+      names_pattern = "(start|end)_(.*)"
+    ) %>%
+    mutate(
+      change = ifelse(type == "start", -1, 1),
+      hour = hour(time)
+    ) %>%
+    select(station, time, hour, change)
+  
+  # add hour markers so we can get cumulative time
+  dates <- unique(as_date(trips_long$time))
+  hours <- c(seq(0,23,1), seq(0,23,1) + 0.9999999)
+  stations <- unique(trips_long$station)
+  
+  hr_pts <- expand.grid(
+    time = dates,
+    hour = hours,
+    station = stations
+  ) %>%
+    mutate(
+      time = as.POSIXct(time) + hour*60*60,
+      hour = hour(time)
+    )
+  
+  hr_pts$change <- 0
+  trips_long <- rbind(trips_long, hr_pts)
+  
+  # find average availability 
+  alpha_hat <- trips_long %>%
+    group_by(station) %>%
+    filter(station != "R") %>%
+    arrange(time) %>% 
+    mutate(
+      count = cumsum(change),
+      date = as_date(time)
+    ) %>%
+    group_by(station, hour, date) %>%
+    summarize(
+      time_avail = sum(
+        difftime(time, lag(time), units="hours") * (count > 0),
+        na.rm = TRUE
+      )
+    ) %>%
+    summarize(avg_avail = mean(time_avail)) %>%
+    mutate(avg_avail = round(as.numeric(avg_avail), digits = 4)) %>%
+    ungroup()
+  
+  # join the data and compute arrival rates
+  mu_hat <- x_hat %>%
+    left_join(alpha_hat, by = c("start_station" = "station", "hour")) %>%
+    mutate(mu_hat = ifelse(avg_avail > 0, avg_trips / avg_avail, NA))
+  
+  return(mu_hat)
+}
+
+#' Clean bike-share trip logs
 #'
 #' @description
 #' Standardizes trip fields and removes rebalancing rows (where stations are "R").
 #'
-#' return data.frame with typed times, integer station ids, date, and integer hour (0–23).
-
-
-#bike <- read_csv("sample_bike.csv")
-
+#' @param trips data.frame containing at least start_station, end_station, start_time, end_time
+#' @return data.frame with typed times, integer station ids, date, and integer hour (0–23)
 clean_trips <- function(trips) {
   x <- trips
   # drop rebalancing rows
@@ -22,100 +116,70 @@ clean_trips <- function(trips) {
   x
 }
 
-#' Aggregate hourly OD counts and pickups (base R)
-#'
-#' param trips cleaned trips from clean_trips
-#' return list with elements: od (start, end, hour, count), pickups (station, hour count), n_days (integrer of distinct days)
 
-aggregate_trips <- function(trips) {
-  n_days <- length(unique(trips$date))
-  
-  od_tab <- aggregate(
-    x = list(count = rep(1L, nrow(trips))),
-    by = list(start_station = trips$start_station,
-              end_station   = trips$end_station,
-              hour          = trips$hour),
-    FUN = sum
-  )
-  od_tab$count <- od_tab$count / max(1L, n_days)
-  
-  # pickups per (s,h)
-  pk_tab <- aggregate(
-    x = list(count = od_tab$count),
-    by = list(station = od_tab$start_station, hour = od_tab$hour),
-    FUN = sum
-  )
-  
-  list(od = od_tab, pickups = pk_tab, n_days = n_days)
+#' Convert arrival rates to lambda_hat
+#'
+#' @description
+#' Renames and selects columns from mu_hat to standard lambda format.
+#'
+#' @param mu_hat data.frame output of estimate_arrival_rates
+#' @return data.frame with columns {s, t, h, lambda}
+estimate_lambda <- function(mu_hat) {
+  mu_hat %>%
+    rename(
+      s = start_station,
+      t = end_station,
+      h = hour,
+      lambda = mu_hat
+    ) %>%
+    select(s, t, h, lambda)
 }
 
-#' Proxy availability share alpha_hat(s,h) (base R)
-#'
-#' @description: Approximates availability as the share of days with at least one departure at station s in hour h.
-#'
-#' @param trips cleaned trips.
-#' return data.frame with columns {station, hour, alpha} in [0,1].
 
-estimate_alpha_proxy <- function(trips) {
-  # per (date,s,h) departures
-  dep_tab <- aggregate(
-    x = list(n = rep(1L, nrow(trips))),
-    by = list(date = trips$date, station = trips$start_station, hour = trips$hour),
-    FUN = sum
+#' Estimate return probabilities P(t | s, h)
+#'
+#' @description
+#' Computes empirical probabilities of trips ending at each station t given start s and hour h.
+#'
+#' @param cleaned_trips data.frame output of clean_trips
+#' @return data.frame with columns {s, t, h, p_st} containing return probabilities
+estimate_return_probs <- function(cleaned_trips) {
+  cleaned_trips %>%
+    mutate(h = hour(start_time)) %>%
+    group_by(start_station, end_station, h) %>%
+    summarise(n = n(), .groups = "drop") %>%
+    group_by(start_station, h) %>%
+    mutate(p_st = n / sum(n)) %>%
+    ungroup() %>%
+    rename(
+      s = start_station,
+      t = end_station,
+      h = h
+    ) %>%
+    select(s, t, h, p_st)
+}
+
+
+#' Wrapper function to run all estimation steps
+#'
+#' @description
+#' Cleans trips, estimates arrival rates, converts to lambda_hat, and computes return probabilities.
+#'
+#' @param trips data.frame of raw bike-share trips
+#' @return list containing:
+#' \describe{
+#'   \item{lambda_hat}{data.frame with columns {s, t, h, lambda}}
+#'   \item{returns}{data.frame with columns {s, t, h, p_st}}
+#' }
+estimate_all <- function(trips) {
+  cleaned <- clean_trips(trips)
+  mu_hat  <- estimate_arrival_rates(cleaned)
+  lambda_hat <- estimate_lambda(mu_hat)
+  returns    <- estimate_return_probs(cleaned)
+  
+  list(
+    lambda_hat = lambda_hat,
+    returns = returns
   )
-  dep_tab$any_dep <- dep_tab$n > 0
-  
-  alpha_tab <- aggregate(
-    x = list(alpha = dep_tab$any_dep),
-    by = list(station = dep_tab$station, hour = dep_tab$hour),
-    FUN = function(z) mean(as.numeric(z))
-  )
-  alpha_tab
 }
 
-#' Estimate lambda_hat(s,t,h) = x_hat / alpha_hat (base R)
-#'
-#' @param od data.frame {start_station, end_station, hour, count}.
-#' @return data.frame {s, t, h, p_st}.
-
-estimate_returns <- function(od) {
-  # Split by (s,h)
-  key <- paste(od$start_station, od$hour, sep = "_")
-  split_idx <- split(seq_len(nrow(od)), key)
-  
-  res_list <- lapply(split_idx, function(idx) {
-    tmp <- od[idx, , drop = FALSE]
-    s <- tmp$start_station[1]
-    h <- tmp$hour[1]
-    rs <- sum(tmp$count)
-    if (rs > 0) {
-      p <- tmp$count / rs
-    } else {
-      p <- rep(0, nrow(tmp))
-      stay <- which(tmp$end_station == s)
-      if (length(stay) == 0L) {
-        tmp <- rbind(tmp, data.frame(start_station = s, end_station = s, hour = h, count = 0))
-        p <- c(p, 1)
-      } else {
-        p[stay[1]] <- 1
-      }
-    }
-    data.frame(s = s, t = tmp$end_station, h = h, p_st = p)
-  })
-  
-  do.call(rbind, res_list)
-}
-
-#' Full parameter estimation wrapper (base R)
-#'
-#' @param trips cleaned trips from clean_trips
-#' @return list with lambda_hat and returns (P(t|s,h)).
-
-estimate_params <- function(trips) {
-  ag <- aggregate_trips(trips)
-  alpha <- estimate_alpha_proxy(trips)
-  lam <- estimate_lambda(ag$od, alpha)
-  ret <- estimate_returns(ag$od)
-  list(lambda_hat = lam, returns = ret)
-}
-# Estimation script
