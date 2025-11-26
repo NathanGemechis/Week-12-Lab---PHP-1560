@@ -1,1 +1,4 @@
+Scripts:
+This folder contains all the scripts needed to run.
 
+`master_pipeline.R` runs all the scripts after inserting path to the data
