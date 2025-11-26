@@ -125,3 +125,5 @@ test_that("plotting functions run without error", {
   expect_error(plot_mc_station_satisfaction(mc), NA)
   expect_error(plot_mc_satisfaction_heatmap(mc), NA)
 })
+
+

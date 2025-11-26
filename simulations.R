@@ -1,4 +1,4 @@
-#' Simulate one day under NHPP demand (base R)
+#' Simulate one day under NHPP demand
 #'
 #' @description
 #' For each hour h and origin s, draw total demand D(s,h) ~ Poisson(sum_t lambda(s,t,h)).
@@ -111,7 +111,7 @@ simulate_day_nhpp <- function(lambda_hat, returns, b0, hours = 0:23, seed = NULL
   )
 }
 
-#' Monte Carlo evaluation of an allocation (base R)
+#' Monte Carlo evaluation of an allocation
 #'
 #' @param lambda_hat data.frame {s,t,h,lambda}
 #' @param returns data.frame {s,t,h,p_st}
@@ -138,4 +138,5 @@ mc_simulate <- function(lambda_hat, returns, b0, n_sims = 200, seed = NULL) {
     ending_mean = colMeans(E)
   )
 }
-# Simulations script
+
+

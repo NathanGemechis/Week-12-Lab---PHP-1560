@@ -51,12 +51,13 @@ plot_mc_overall_satisfaction <- function(mc_df) {
   happy  <- sum(mc_df$served_mean)
   unhappy <- sum(mc_df$unmet_mean)
   
-  counts <- c(happy, unhappy)
-  names(counts) <- c("Happy", "Unhappy")
+  counts <- c(unhappy, happy)   # FIXED
+  
+  names(counts) <- c("Unhappy", "Happy")
   
   barplot(
     counts,
-    col = c("lightgreen", "salmon"),
+    col = c("salmon", "lightgreen"),
     ylab = "Average Customers per Day",
     main = "MC Average Overall Customer Satisfaction"
   )
@@ -91,4 +92,20 @@ plot_mc_satisfaction_heatmap <- function(mc_df) {
     scale = "none",
     main = "MC Station Satisfaction Heatmap"
   )
+}
+
+# Print per-station satisfaction table
+print_station_satisfaction_table <- function(served_by_station, unmet_by_station) {
+  df <- data.frame(
+    station = names(served_by_station),
+    happy   = as.numeric(served_by_station),
+    unhappy = as.numeric(unmet_by_station)
+  )
+  
+  # sort by station ID
+  df$station <- as.integer(df$station)
+  df <- df[order(df$station), ]
+  
+  print(df, row.names = FALSE)
+  
 }

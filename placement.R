@@ -1,4 +1,4 @@
-#' Marginal value of +1 bike at a station (base R)
+#' Marginal value of +1 bike at a station
 #'
 #' @param lambda_hat data.frame {s,t,h,lambda}.
 #' @param returns data.frame {s,t,h,p_st}.
@@ -18,24 +18,43 @@ marginal_value <- function(lambda_hat, returns, b0, s, reps = 50, seed = NULL) {
   sum(base$unmet_mean) - sum(plus$unmet_mean)
 }
 
-#' Greedy placement to minimize expected unmet pickups (base R)
+
+#' Greedy placement
 #'
-#' @param lambda_hat data.frame {s,t,h,lambda}.
-#' @param returns data.frame {s,t,h,p_st}.
-#' @param B integer total bikes to place.
-#' @param init named integer vector initial allocation (optional; default all zeros)
-#' @param reps integer sims per marginal estimate (small for speed)
-#' @param seed optional seed
-#' @return named integer vector {b_star}
+#' This function allocates bikes to stations using a greedy
+#' algorithm. Starting from an initial allocation (which is all zeros), it adds
+#' bikes one at a time. At each step, it evaluates every station by simulating
+#' the expected unmet demand if one additional bike were placed there. The bike
+#' is then assigned to the station that yields the largest reduction in expected
+#' unmet pickups.
+#'
+#' This repeats until all B bikes have been placed.
+#'
+#' @param lambda_hat data.frame with columns {s, t, h, lambda}; estimated arrival rates.
+#' @param returns data.frame with columns {s, t, h, p_st}; return probabilities.
+#' @param B integer total number of bikes to allocate.
+#' @param init named integer vector of initial allocation (default = all zeros).
+#' @param reps integer number of Monte Carlo simulations per marginal evaluation.
+#'             Smaller values run faster but with more noise (default: 30).
+#' @param seed optional RNG seed for reproducibility.
+#'
+#' @return named integer vector {b_star} giving recommended bikes per station.
+
 greedy_placement <- function(lambda_hat, returns, B, init = NULL, reps = 30, seed = NULL) {
+  
   st <- sort(unique(lambda_hat$s))
+  
+  # initialize allocation
   if (is.null(init)) {
-    b <- integer(length(st)); names(b) <- as.character(st)
+    b <- integer(length(st))
+    names(b) <- as.character(st)
   } else {
     b <- init
   }
+  
   if (!is.null(seed)) set.seed(seed)
   
+  # greedy loop
   for (k in seq_len(B)) {
     gains <- numeric(length(st))
     for (i in seq_along(st)) {
@@ -46,10 +65,12 @@ greedy_placement <- function(lambda_hat, returns, B, init = NULL, reps = 30, see
     if (is.na(b[nm])) b[nm] <- 0L
     b[nm] <- b[nm] + 1L
   }
+  
   b
 }
 
-#' Summarize results for manager (base R)
+
+#' Summarize results
 #'
 #' @param lambda_hat data.frame {s,t,h,lambda}
 #' @param returns data.frame {s,t,h,p_st}
@@ -72,4 +93,4 @@ summarize_results <- function(lambda_hat, returns, b_star, n_sims = 1000, seed =
   # sort by recommended bikes descending, then served
   ord <- order(-out$recommended_bikes, -out$served_mean)
   out[ord, , drop = FALSE]
-}# Placement script
+}
