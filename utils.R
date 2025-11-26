@@ -1,5 +1,6 @@
 # Utils script: Customer satisfaction plots
 
+
 # Plot overall daily customer satisfaction as a bar chart
 plot_overall_satisfaction <- function(served_by_station, unmet_by_station) {
   happy  <- sum(served_by_station)

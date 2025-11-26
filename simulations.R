@@ -1,3 +1,4 @@
+# Simulation Script
 #' Simulate one day under NHPP demand
 #'
 #' @description

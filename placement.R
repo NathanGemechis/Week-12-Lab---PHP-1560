@@ -1,3 +1,5 @@
+# Placement Script
+
 #' Marginal value of +1 bike at a station
 #'
 #' @param lambda_hat data.frame {s,t,h,lambda}.

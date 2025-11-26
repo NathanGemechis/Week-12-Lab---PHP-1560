@@ -1,7 +1,7 @@
+# Estimation Script
 library(dplyr)
 library(tidyr)
 library(lubridate)
-
 
 #' Estimate arrival rates for bike-share trips
 #'
