@@ -1,1 +1,9 @@
-Results
+#Results Folder:
+
+This folder contains plots and tables based on fleet size
+
+
+For example: a file named "fleet_100..." is for a fleet size of 100 bikes
+
+The plots and table summarize happy/unhappy counts overall and per station.
+
