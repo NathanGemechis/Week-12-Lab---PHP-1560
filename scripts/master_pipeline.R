@@ -7,7 +7,7 @@ source("placement.R")       # greedy_placement, summarize_results
 source("utils.R")           # plotting helper + station table
 
 print("Loading bike data...")
-trips <- read.csv("*path to the data*")  # your dataset path
+trips <- read.csv("/Users/NathanGemechis/Documents/BROWN/PHP 1560/Week 11 Lab/sample_bike.csv")  # your dataset path
 
 print("Estimating λ(s,t,h) & return probabilities...")
 est <- estimate_all(trips)
@@ -38,11 +38,11 @@ for (ex in examples) {
   plot_satisfaction_heatmap(summary_df$served_mean, summary_df$unmet_mean)
   
   # table of happy/unhappy per station
-  print_station_summary_table(
+  print_station_satisfaction_table(
     served_by_station = summary_df$served_mean,
-    unmet_by_station  = summary_df$unmet_mean,
-    stations          = summary_df$station
+    unmet_by_station  = summary_df$unmet_mean
   )
+  
 }
 
 print("Finished all examples.")
