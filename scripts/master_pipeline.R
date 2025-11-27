@@ -7,7 +7,7 @@ source("placement.R")       # greedy_placement, summarize_results
 source("utils.R")           # plotting helper + station table
 
 print("Loading bike data...")
-trips <- read.csv("*Insert path to data here*")
+trips <- read.csv("*path to the data*")
 
 print("Estimating λ(s,t,h) & return probabilities...")
 est <- estimate_all(trips)
