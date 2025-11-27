@@ -25,7 +25,7 @@ Estimate bike-share demand, simulate daily operations, and recommend optimal bik
   - Visualization functions for customer satisfaction
   - Overall and per-station bar charts
   - Station-level heatmaps
-  - (Updated) Prints a table showing each station’s happy/unhappy counts
+  - Prints a table showing each station’s happy/unhappy counts
 
 - **tests.R**
   - Unit tests for cleaning, λ estimation, return probabilities, simulations, placement, and plotting
