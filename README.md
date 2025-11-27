@@ -19,7 +19,7 @@ Estimate bike-share demand, simulate daily operations, and recommend optimal bik
   - Computes marginal value of adding bikes (`marginal_value()`)
   - Greedy bike allocation optimization (`greedy_placement()`)
   - Summarizes results per station (`summarize_results()`)
-  - (Updated) Includes a per-station table of happy vs. unhappy customers
+  - Includes a per-station table of happy vs. unhappy customers
 
 - **utils.R**
   - Visualization functions for customer satisfaction
