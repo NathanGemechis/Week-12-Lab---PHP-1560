@@ -41,5 +41,5 @@ Estimate bike-share demand, simulate daily operations, and recommend optimal bik
 3. Open and run `master_pipeline.R` in R.  
 4. Outputs:
    - `summary_df`: recommended allocations and expected served/unmet counts  
-   - Plots: overall and per-station satisfaction  
-   - Table: station-level happy/unhappy customer counts
+   - Plots: overall and per-station satisfaction, bike distribution
+   - Table: station-level happy/unhappy customer counts, bike allocations
