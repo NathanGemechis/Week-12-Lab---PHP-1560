@@ -115,22 +115,36 @@ print_station_satisfaction_table <- function(served_by_station, unmet_by_station
   print(df)
 }
 
-# Plot final bike allocation across stations
-plot_bike_allocation <- function(b_star) {
-  
+# Plot final bike allocation per station
+plot_final_allocation <- function(b_star) {
   # Ensure names exist
   if (is.null(names(b_star)) || length(names(b_star)) == 0) {
     names(b_star) <- as.character(seq_along(b_star))
   }
   
   barplot(
-    b_star,
+    height = b_star,
+    names.arg = names(b_star),
     col = "skyblue",
     ylab = "Number of Bikes",
-    xlab = "Station",
     main = "Final Bike Allocation per Station",
     las = 2
   )
+}
+
+
+# Table of final bike allocation per station
+print_final_allocation_table <- function(b_star) {
+  if (is.null(names(b_star)) || length(names(b_star)) == 0) {
+    names(b_star) <- as.character(seq_along(b_star))
+  }
+  
+  df <- data.frame(
+    station = names(b_star),
+    bikes = as.numeric(b_star)
+  )
+  
+  print(df)
 }
 
 
