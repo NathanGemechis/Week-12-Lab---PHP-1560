@@ -4,10 +4,10 @@ print("Loading scripts...")
 source("estimation.R")      # estimate_all, clean_trips, etc.
 source("simulations.R")     # simulate_day_nhpp, mc_simulate
 source("placement.R")       # greedy_placement, summarize_results
-source("utils.R")           # plotting helper + station table
+source("utils.R")           # plotting helper + station table + new bike allocation plot
 
 print("Loading bike data...")
-trips <- read.csv("/Users/NathanGemechis/Documents/BROWN/PHP 1560/Week 11 Lab/sample_bike.csv")  # your dataset path
+trips <- read.csv("/Users/NathanGemechis/Documents/BROWN/PHP 1560/Week 11 Lab/sample_bike.csv")
 
 print("Estimating λ(s,t,h) & return probabilities...")
 est <- estimate_all(trips)
@@ -37,12 +37,14 @@ for (ex in examples) {
   plot_station_satisfaction(summary_df$served_mean, summary_df$unmet_mean)
   plot_satisfaction_heatmap(summary_df$served_mean, summary_df$unmet_mean)
   
+  # plot the final bike distribution
+  plot_bike_allocation(b_star)
+  
   # table of happy/unhappy per station
   print_station_satisfaction_table(
     served_by_station = summary_df$served_mean,
     unmet_by_station  = summary_df$unmet_mean
   )
-  
 }
 
 print("Finished all examples.")

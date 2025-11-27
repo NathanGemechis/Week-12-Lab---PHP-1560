@@ -97,16 +97,41 @@ plot_mc_satisfaction_heatmap <- function(mc_df) {
 
 # Print per-station satisfaction table
 print_station_satisfaction_table <- function(served_by_station, unmet_by_station) {
+  
+  # If names are missing, attach them from length
+  if (is.null(names(served_by_station)) || length(names(served_by_station)) == 0) {
+    names(served_by_station) <- as.character(seq_along(served_by_station))
+  }
+  if (is.null(names(unmet_by_station)) || length(names(unmet_by_station)) == 0) {
+    names(unmet_by_station) <- names(served_by_station)
+  }
+  
   df <- data.frame(
     station = names(served_by_station),
     happy   = as.numeric(served_by_station),
     unhappy = as.numeric(unmet_by_station)
   )
   
-  # sort by station ID
-  df$station <- as.integer(df$station)
-  df <- df[order(df$station), ]
-  
-  print(df, row.names = FALSE)
-  
+  print(df)
 }
+
+# Plot final bike allocation across stations
+plot_bike_allocation <- function(b_star) {
+  
+  # Ensure names exist
+  if (is.null(names(b_star)) || length(names(b_star)) == 0) {
+    names(b_star) <- as.character(seq_along(b_star))
+  }
+  
+  barplot(
+    b_star,
+    col = "skyblue",
+    ylab = "Number of Bikes",
+    xlab = "Station",
+    main = "Final Bike Allocation per Station",
+    las = 2
+  )
+}
+
+
+
